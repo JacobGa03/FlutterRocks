@@ -1,0 +1,23 @@
+name: flutter_application_openmapapp
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.5.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_typeahead: ^5.2.0
+  http: ^1.2.2
+  type_ahead_text_field: ^0.0.5
+  url_launcher: ^6.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

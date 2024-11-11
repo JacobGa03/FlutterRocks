@@ -45,15 +45,18 @@ class _MapPageState extends State<MapPage> {
                 markers: {
                   // Markers represent
                   Marker(
+                      onTap: () => print("Clicking $_currPos"),
                       markerId: const MarkerId("_currentLocation"),
                       icon: BitmapDescriptor.defaultMarker,
                       position: _currPos!),
-                  const Marker(
-                      markerId: MarkerId("_sourceLocation"),
+                  Marker(
+                      onTap: () => print("Clicking $_rcme"),
+                      markerId: const MarkerId("_sourceLocation"),
                       icon: BitmapDescriptor.defaultMarker,
                       position: _rcme),
-                  const Marker(
-                      markerId: MarkerId("_destinationLocation"),
+                  Marker(
+                      onTap: () => print("Clicking: $_jlco"),
+                      markerId: const MarkerId("_destinationLocation"),
                       icon: BitmapDescriptor.defaultMarker,
                       position: _jlco)
                 },
@@ -63,6 +66,7 @@ class _MapPageState extends State<MapPage> {
           );
   }
 
+  // Get the location of the user
   Future<void> getLocationUpdates() async {
     // Are we allowed to obtain user location
     bool serviceEnabled;
@@ -89,12 +93,15 @@ class _MapPageState extends State<MapPage> {
       if (curLoc.latitude != null && curLoc.longitude != null) {
         setState(() {
           _currPos = LatLng(curLoc.latitude!, curLoc.longitude!);
+          // Move the camera to the current position of the user
+          // TODO: when the user is just looking for trips , this should be disabled
           _cameraToPosition(_currPos!);
         });
       }
     });
   }
 
+  // Move the camera to a specific position (to some position represented as LatLng)
   Future<void> _cameraToPosition(LatLng pos) async {
     final GoogleMapController con = await _mapCon.future;
     CameraPosition newCameraPos = CameraPosition(target: pos, zoom: 13);
@@ -104,10 +111,11 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  // Get the directions from Google Maps API from one location to another
+  // Get the route from Google Maps API from one location to another
   Future<List<LatLng>> getPolylinePoints() async {
     List<LatLng> polylineCoor = [];
     PolylinePoints polylinePoints = PolylinePoints();
+    // Call the Google Maps API to get the route from one location to another
     PolylineResult res = await polylinePoints.getRouteBetweenCoordinates(
         // The API key for Google Maps
         googleApiKey: GOOGLE_MAPS,
@@ -115,6 +123,8 @@ class _MapPageState extends State<MapPage> {
             origin: PointLatLng(_jlco.latitude, _jlco.longitude),
             destination: PointLatLng(_rcme.latitude, _rcme.longitude),
             mode: TravelMode.driving));
+
+    // Some route exists
     if (res.points.isNotEmpty) {
       for (var point in res.points) {
         polylineCoor.add(LatLng(point.latitude, point.longitude));
@@ -125,6 +135,7 @@ class _MapPageState extends State<MapPage> {
     return polylineCoor;
   }
 
+  // Generate a polyline from a list of points
   void generatePolyLineFromPoints(List<LatLng> polylineCoor) {
     // Set the id to a polyline
     PolylineId id = const PolylineId("poly");
