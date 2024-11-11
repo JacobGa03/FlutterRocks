@@ -13,15 +13,13 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> {
-  // An actual point on the map
-  static const LatLng _jlco = LatLng(40.76902682137855, -73.98278441352859);
-  static const LatLng _rcme = LatLng(40.76023602126428, -73.98004694041965);
+  List<LatLng> mapPoints = [];
   final Location _locationController = Location();
   // Represent the current position of the user
   LatLng? _currPos;
 
   final Completer<GoogleMapController> _mapCon = Completer();
-
+  // Polylines to draw the route from source to destination
   Map<PolylineId, Polyline> polylines = {};
 
   @override
@@ -40,29 +38,24 @@ class _MapPageState extends State<MapPage> {
             appBar: AppBar(
               title: const Text("DriveU"),
             ),
-            body: GoogleMap(
-                onMapCreated: ((controller) => _mapCon.complete(controller)),
-                markers: {
-                  // Markers represent
-                  Marker(
-                      onTap: () => print("Clicking $_currPos"),
-                      markerId: const MarkerId("_currentLocation"),
-                      icon: BitmapDescriptor.defaultMarker,
-                      position: _currPos!),
-                  Marker(
-                      onTap: () => print("Clicking $_rcme"),
-                      markerId: const MarkerId("_sourceLocation"),
-                      icon: BitmapDescriptor.defaultMarker,
-                      position: _rcme),
-                  Marker(
-                      onTap: () => print("Clicking: $_jlco"),
-                      markerId: const MarkerId("_destinationLocation"),
-                      icon: BitmapDescriptor.defaultMarker,
-                      position: _jlco)
-                },
-                polylines: Set<Polyline>.of(polylines.values),
-                initialCameraPosition:
-                    CameraPosition(target: _currPos!, zoom: 10)),
+            body: Column(
+              children: [
+                GoogleMap(
+                    onMapCreated: ((controller) =>
+                        _mapCon.complete(controller)),
+                    markers: {
+                      // Markers represent
+                      Marker(
+                          onTap: () => print("Clicking $_currPos"),
+                          markerId: const MarkerId("_currentLocation"),
+                          icon: BitmapDescriptor.defaultMarker,
+                          position: _currPos!),
+                    },
+                    polylines: Set<Polyline>.of(polylines.values),
+                    initialCameraPosition:
+                        CameraPosition(target: _currPos!, zoom: 10)),
+              ],
+            ),
           );
   }
 
@@ -112,7 +105,9 @@ class _MapPageState extends State<MapPage> {
   }
 
   // Get the route from Google Maps API from one location to another
-  Future<List<LatLng>> getPolylinePoints() async {
+  // optionally you can include waypoints (intermediate locations)
+  Future<List<LatLng>> getPolylinePoints(
+      LatLng origin, LatLng destination) async {
     List<LatLng> polylineCoor = [];
     PolylinePoints polylinePoints = PolylinePoints();
     // Call the Google Maps API to get the route from one location to another
@@ -120,8 +115,9 @@ class _MapPageState extends State<MapPage> {
         // The API key for Google Maps
         googleApiKey: GOOGLE_MAPS,
         request: PolylineRequest(
-            origin: PointLatLng(_jlco.latitude, _jlco.longitude),
-            destination: PointLatLng(_rcme.latitude, _rcme.longitude),
+            origin: PointLatLng(origin.latitude, origin.longitude),
+            destination:
+                PointLatLng(destination.latitude, destination.longitude),
             mode: TravelMode.driving));
 
     // Some route exists
