@@ -3,6 +3,8 @@ plugins {
     id "kotlin-android"
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id "dev.flutter.flutter-gradle-plugin"
+    // So we can hide API keys
+    id 'com.google.secrets_gradle_plugin' version '0.4'
 }
 
 android {

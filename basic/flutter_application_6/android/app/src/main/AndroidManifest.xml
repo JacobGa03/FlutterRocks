@@ -32,8 +32,9 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Utilizing local properties so we don't publish secret keys -->
         <meta-data android:name="com.google.android.geo.API_KEY"
-               android:value="AIzaSyBEROaEfPEHtN1I9jMYWrFmreCknodK13s"/>
+               android:value="${GMP_KEY}"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

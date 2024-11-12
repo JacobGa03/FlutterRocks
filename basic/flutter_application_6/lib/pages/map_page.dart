@@ -17,7 +17,8 @@ class _MapPageState extends State<MapPage> {
   final Location _locationController = Location();
   // Represent the current position of the user
   LatLng? _currPos;
-
+  // Our set of markers that we will display on the map
+  Set<Marker> markers = {};
   final Completer<GoogleMapController> _mapCon = Completer();
   // Polylines to draw the route from source to destination
   Map<PolylineId, Polyline> polylines = {};
@@ -25,35 +26,36 @@ class _MapPageState extends State<MapPage> {
   @override
   void initState() {
     super.initState();
+    _initMap();
     // When the application first loads, draw the route from source to destination
-    getLocationUpdates().then((_) =>
-        getPolylinePoints().then((coor) => generatePolyLineFromPoints(coor)));
+    // TODO: Move this to somewhere when the person selected a ride
+    // getLocationUpdates().then((_) =>
+    //     getPolylinePoints(, ).then((coor) => generatePolyLineFromPoints(coor)));
+  }
+
+  // Get the location of the user, then generate the points.
+  Future<void> _initMap() async {
+    await getLocationUpdates().then((_) => getMarkers());
   }
 
   @override
   Widget build(BuildContext context) {
     return _currPos == null
-        ? const Scaffold(body: Center(child: Text("Loading")))
+        ? const Scaffold(body: Center(child: CircularProgressIndicator()))
         : Scaffold(
             appBar: AppBar(
               title: const Text("DriveU"),
             ),
             body: Column(
               children: [
-                GoogleMap(
-                    onMapCreated: ((controller) =>
-                        _mapCon.complete(controller)),
-                    markers: {
-                      // Markers represent
-                      Marker(
-                          onTap: () => print("Clicking $_currPos"),
-                          markerId: const MarkerId("_currentLocation"),
-                          icon: BitmapDescriptor.defaultMarker,
-                          position: _currPos!),
-                    },
-                    polylines: Set<Polyline>.of(polylines.values),
-                    initialCameraPosition:
-                        CameraPosition(target: _currPos!, zoom: 10)),
+                Expanded(
+                  child: GoogleMap(
+                      onMapCreated: ((controller) =>
+                          _mapCon.complete(controller)),
+                      markers: markers,
+                      initialCameraPosition:
+                          CameraPosition(target: _currPos!, zoom: 10)),
+                ),
               ],
             ),
           );
@@ -66,13 +68,11 @@ class _MapPageState extends State<MapPage> {
     PermissionStatus permissionGranted;
 
     serviceEnabled = await _locationController.serviceEnabled();
-    if (serviceEnabled) {
+    if (!serviceEnabled) {
       // If we can, ask for permission to take location data
       serviceEnabled = await _locationController.requestService();
-    } else {
-      return;
+      if (!serviceEnabled) return;
     }
-
     permissionGranted = await _locationController.hasPermission();
     // Ask for permission to gain location of the user
     if (permissionGranted == PermissionStatus.denied) {
@@ -88,7 +88,40 @@ class _MapPageState extends State<MapPage> {
           _currPos = LatLng(curLoc.latitude!, curLoc.longitude!);
           // Move the camera to the current position of the user
           // TODO: when the user is just looking for trips , this should be disabled
-          _cameraToPosition(_currPos!);
+          // _cameraToPosition(_currPos!);
+
+          // TODO: When redrawing the map might need to remove users old location
+          // Add the users current location to the map
+          markers.add(Marker(
+              markerId: const MarkerId("_currLocation"),
+              onTap: () => print("my current location"),
+              position: _currPos!,
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueBlue)));
+
+          // Just generate random points
+          double lat = _currPos!.latitude;
+          double lng = _currPos!.longitude;
+
+          for (int i = 0; i < 25; i++) {
+            double latOffset = (i % 2 == 0 ? 1 : -1) * (i * 0.01);
+            double lngOffset = (i % 2 == 0 ? 1 : -1) * (i * 0.01);
+            double newLat = lat + latOffset;
+            double newLng = lng + lngOffset;
+
+            Marker marker = Marker(
+              markerId: MarkerId(i.toString()),
+              icon: BitmapDescriptor.defaultMarker,
+              position: LatLng(newLat, newLng),
+              infoWindow: InfoWindow(title: "Marker $i"),
+            );
+
+            markers.add(marker);
+            print("Adding marker $i at ($newLat, $newLng)");
+          }
+
+          // Call setState to update the map with new markers
+          setState(() {});
         });
       }
     });
@@ -104,33 +137,6 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  // Get the route from Google Maps API from one location to another
-  // optionally you can include waypoints (intermediate locations)
-  Future<List<LatLng>> getPolylinePoints(
-      LatLng origin, LatLng destination) async {
-    List<LatLng> polylineCoor = [];
-    PolylinePoints polylinePoints = PolylinePoints();
-    // Call the Google Maps API to get the route from one location to another
-    PolylineResult res = await polylinePoints.getRouteBetweenCoordinates(
-        // The API key for Google Maps
-        googleApiKey: GOOGLE_MAPS,
-        request: PolylineRequest(
-            origin: PointLatLng(origin.latitude, origin.longitude),
-            destination:
-                PointLatLng(destination.latitude, destination.longitude),
-            mode: TravelMode.driving));
-
-    // Some route exists
-    if (res.points.isNotEmpty) {
-      for (var point in res.points) {
-        polylineCoor.add(LatLng(point.latitude, point.longitude));
-      }
-    } else {
-      print(res.errorMessage);
-    }
-    return polylineCoor;
-  }
-
   // Generate a polyline from a list of points
   void generatePolyLineFromPoints(List<LatLng> polylineCoor) {
     // Set the id to a polyline
@@ -142,5 +148,36 @@ class _MapPageState extends State<MapPage> {
     setState(() {
       polylines[id] = polyline;
     });
+  }
+
+  // TESTING: generate a set of markers to display on the map within a radius of the user
+  Future<void> getMarkers() async {
+    if (_currPos == null) {
+      print("Current position is null");
+      return;
+    } // Ensure _currPos is not null
+
+    double lat = _currPos!.latitude;
+    double lng = _currPos!.longitude;
+
+    for (int i = 0; i < 25; i++) {
+      double latOffset = (i % 2 == 0 ? 1 : -1) * (i * 0.01);
+      double lngOffset = (i % 2 == 0 ? 1 : -1) * (i * 0.01);
+      double newLat = lat + latOffset;
+      double newLng = lng + lngOffset;
+
+      Marker marker = Marker(
+        markerId: MarkerId(i.toString()),
+        icon: BitmapDescriptor.defaultMarker,
+        position: LatLng(newLat, newLng),
+        infoWindow: InfoWindow(title: "Marker $i"),
+      );
+
+      markers.add(marker);
+      print("Adding marker $i at ($newLat, $newLng)");
+    }
+
+    // Call setState to update the map with new markers
+    setState(() {});
   }
 }
