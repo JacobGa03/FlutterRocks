@@ -94,6 +94,7 @@ class _MapPageState extends State<MapPage> {
           // Add the users current location to the map
           markers.add(Marker(
               markerId: const MarkerId("_currLocation"),
+              // Here we will display some sort of alert dialog
               onTap: () => print("my current location"),
               position: _currPos!,
               icon: BitmapDescriptor.defaultMarkerWithHue(
